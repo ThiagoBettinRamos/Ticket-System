@@ -16,6 +16,7 @@ def conectar_banco():
     conn.commit()
     return conn, cursor
 
+
 def registrar_chamado(descricao, pessoa, setor):
     hora_atual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     conn, cursor = conectar_banco()

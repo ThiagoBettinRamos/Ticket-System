@@ -1,3 +1,6 @@
 matplotlib
 pillow
 reportlab
+ttkbootstrap
+pyside6
+kivy
