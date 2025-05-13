@@ -1,5 +1,4 @@
 import sqlite3
-from datetime import datetime
 
 def conectar_banco():
     conn = sqlite3.connect('sistema_chamados.db')
@@ -10,20 +9,18 @@ def conectar_banco():
             descricao TEXT NOT NULL,
             pessoa TEXT NOT NULL,
             setor TEXT NOT NULL,
-            hora TEXT NOT NULL
-        )
+            data_hora TEXT NOT NULL
+        );
     ''')
     conn.commit()
     return conn, cursor
 
-
-def registrar_chamado(descricao, pessoa, setor):
-    hora_atual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+def registrar_chamado(descricao, pessoa, setor, data_hora):
     conn, cursor = conectar_banco()
     cursor.execute('''
-        INSERT INTO chamados (descricao, pessoa, setor, hora)
+        INSERT INTO chamados (descricao, pessoa, setor, data_hora)
         VALUES (?, ?, ?, ?)
-    ''', (descricao, pessoa, setor, hora_atual))
+    ''', (descricao, pessoa, setor, data_hora))
     conn.commit()
     conn.close()
 
@@ -35,7 +32,7 @@ def excluir_chamado(id_chamado):
 
 def listar_chamados_periodo(start_date, end_date):
     conn, cursor = conectar_banco()
-    cursor.execute("SELECT * FROM chamados WHERE hora BETWEEN ? AND ?", (start_date, end_date))
+    cursor.execute("SELECT * FROM chamados WHERE data_hora BETWEEN ? AND ?", (start_date, end_date))
     dados = cursor.fetchall()
     conn.close()
     return dados

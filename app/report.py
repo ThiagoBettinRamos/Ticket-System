@@ -4,7 +4,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from dateutil.parser import parse
-from datetime import datetime
 
 def gerar_graficos(dados):
     setores = {}
@@ -38,19 +37,27 @@ def gerar_pdf(dados, start_date, end_date, pdf_path):
     elements.append(subtitle)
     elements.append(Spacer(1, 12))
 
-    table_data = [['ID', 'Descrição', 'Pessoa', 'Setor', 'Hora']]
+    # Tabela
+    table_data = [['ID', 'Descrição', 'Pessoa', 'Setor', 'Data/Hora']]
     for dado in dados:
         try:
-            hora_formatada = parse(dado[4]).strftime('%d/%m/%Y %H:%M:%S')
+            data_formatada = parse(dado[4]).strftime('%d/%m/%Y %H:%M')
         except:
-            hora_formatada = dado[4]
-        table_data.append([str(dado[0]), dado[1], dado[2], dado[3], hora_formatada])
+            data_formatada = dado[4]
+        table_data.append([
+            str(dado[0]),
+            Paragraph(dado[1], styles['Normal']),
+            Paragraph(dado[2], styles['Normal']),
+            Paragraph(dado[3], styles['Normal']),
+            Paragraph(data_formatada, styles['Normal'])
+        ])
 
-    t = Table(table_data, colWidths=[40, 150, 100, 100, 120])
+    t = Table(table_data, colWidths=[40, 200, 100, 100, 120])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.grey),
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
         ('FONTSIZE', (0,0), (-1,0), 10),
         ('BOTTOMPADDING', (0,0), (-1,0), 12),
@@ -60,25 +67,26 @@ def gerar_pdf(dados, start_date, end_date, pdf_path):
     elements.append(t)
     elements.append(Spacer(1, 24))
 
+    # Gráfico
     graph_title = Paragraph("Gráfico de Chamados", styles['Heading2'])
     elements.append(graph_title)
     elements.append(Spacer(1, 12))
 
     img = RLImage("setores_chart.png", width=400, height=300)
     elements.append(img)
-
     elements.append(Spacer(1, 24))
+
+    # Resumo Descritivo
     desc_title = Paragraph("Resumo Descritivo dos Chamados", styles['Heading2'])
     elements.append(desc_title)
     elements.append(Spacer(1, 12))
 
     for dado in dados:
         try:
-            hora_formatada = parse(dado[4]).strftime('%d/%m/%Y %H:%M:%S')
+            data_formatada = parse(dado[4]).strftime('%d/%m/%Y %H:%M')
         except:
-            hora_formatada = dado[4]
-
-        texto = f"<b>Local:</b> {dado[3]} - {dado[2]} | <b>Serviço:</b> {dado[1]} | <b>Hora:</b> {hora_formatada}"
+            data_formatada = dado[4]
+        texto = f"<b>Local:</b> {dado[3]} - {dado[2]} | <b>Serviço:</b> {dado[1]} | <b>Data/Hora:</b> {data_formatada}"
         elements.append(Paragraph(texto, styles['Normal']))
         elements.append(Spacer(1, 6))
 
