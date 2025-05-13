@@ -95,38 +95,97 @@ class ChamadosApp(App):
             self.show_error("Todos os campos são obrigatórios!")
 
     def mostrar_dados(self, instance):
-        dados = listar_chamados_todos()
-        if not dados:
-            self.show_error("Não há chamados registrados para exibir.")
-            return
+        def verificar_senha_visualizacao(_):
+            senha = senha_input.text.strip()
+            senha_popup.dismiss()
+            if senha == SENHA_RELATORIO:
+                mostrar_tabela()
+            else:
+                self.show_error("Senha incorreta!")
 
-        scroll = ScrollView(size_hint=(1, 1))
-        table_layout = GridLayout(cols=1, size_hint_y=None, spacing=5, padding=5)
-        table_layout.bind(minimum_height=table_layout.setter('height'))
+        senha_input = TextInput(password=True, hint_text="Digite a senha", multiline=False)
+        confirmar_btn = Button(text="Confirmar", size_hint_y=None, height=40)
 
-        header = GridLayout(cols=6, size_hint_y=None, height=30)
-        for titulo in ["ID", "Descrição", "Pessoa", "Setor", "Hora", "Ações"]:
-            header.add_widget(Label(text=titulo, bold=True, color=(1, 1, 1, 1)))
-        table_layout.add_widget(header)
+        box = BoxLayout(orientation='vertical', spacing=10, padding=10)
+        box.add_widget(senha_input)
+        box.add_widget(confirmar_btn)
 
-        for dado in dados:
-            row = GridLayout(cols=6, size_hint_y=None, height=60)
-            row.add_widget(Label(text=str(dado[0]), color=(1, 1, 1, 1)))
-            row.add_widget(Label(text=dado[1], text_size=(200, None), halign="left", valign="top", color=(1, 1, 1, 1)))
-            row.add_widget(Label(text=dado[2], color=(1, 1, 1, 1)))
-            row.add_widget(Label(text=dado[3], color=(1, 1, 1, 1)))
-            row.add_widget(Label(text=dado[4], color=(1, 1, 1, 1)))
+        senha_popup = Popup(title="Acesso Restrito", content=box, size_hint=(None, None), size=(400, 200))
+        confirmar_btn.bind(on_press=verificar_senha_visualizacao)
+        senha_popup.open()
 
-            excluir_btn = Button(text="Excluir", size_hint_x=None, width=100, background_color=(0.8, 0.2, 0.2, 1))
-            excluir_btn.bind(on_press=lambda btn, id=dado[0]: self.confirmar_exclusao(id))
-            row.add_widget(excluir_btn)
+        def mostrar_tabela():
+            dados = listar_chamados_todos()
+            if not dados:
+                self.show_error("Não há chamados registrados para exibir.")
+                return
 
-            table_layout.add_widget(row)
+            scroll = ScrollView(size_hint=(1, 1))
+            table_layout = GridLayout(cols=1, size_hint_y=None, spacing=5, padding=5)
+            table_layout.bind(minimum_height=table_layout.setter('height'))
 
-        scroll.add_widget(table_layout)
+            header = GridLayout(cols=6, size_hint_y=None, height=30)
+            for titulo in ["ID", "Descrição", "Pessoa", "Setor", "Hora", "Ações"]:
+                header.add_widget(Label(text=titulo, bold=True, color=(1, 1, 1, 1)))
+            table_layout.add_widget(header)
 
-        self.popup = Popup(title="Dados dos Chamados", content=scroll, size_hint=(None, None), size=(800, 500))
-        self.popup.open()
+            for dado in dados:
+                row = GridLayout(cols=6, size_hint_y=None, height=80, spacing=5)
+
+                row.add_widget(Label(
+                    text=str(dado[0]),
+                    size_hint_x=0.1,
+                    color=(1, 1, 1, 1),
+                    halign="left", valign="middle"
+                ))
+
+                descricao_lbl = Label(
+                    text=dado[1],
+                    size_hint_x=0.3,
+                    color=(1, 1, 1, 1),
+                    text_size=(250, None),
+                    halign="left",
+                    valign="top"
+                )
+                descricao_lbl.bind(texture_size=descricao_lbl.setter('size'))
+                row.add_widget(descricao_lbl)
+
+                row.add_widget(Label(
+                    text=dado[2],
+                    size_hint_x=0.15,
+                    color=(1, 1, 1, 1),
+                    halign="left", valign="middle"
+                ))
+
+                row.add_widget(Label(
+                    text=dado[3],
+                    size_hint_x=0.2,
+                    color=(1, 1, 1, 1),
+                    halign="left", valign="middle"
+                ))
+
+                row.add_widget(Label(
+                    text=dado[4],
+                    size_hint_x=0.15,
+                    color=(1, 1, 1, 1),
+                    halign="left", valign="middle"
+                ))
+
+                excluir_btn = Button(
+                    text="Excluir",
+                    size_hint_x=0.1,
+                    height=40,
+                    background_color=(0.5, 0.0, 0.5, 1)  # Roxo
+                )
+                excluir_btn.bind(on_press=lambda btn, id=dado[0]: self.confirmar_exclusao(id))
+                row.add_widget(excluir_btn)
+
+                table_layout.add_widget(row)
+
+            scroll.add_widget(table_layout)
+
+            self.popup = Popup(title="Dados dos Chamados", content=scroll, size_hint=(None, None), size=(800, 500))
+            self.popup.open()
 
     def confirmar_exclusao(self, chamado_id):
         content = BoxLayout(orientation='vertical', spacing=10, padding=10)

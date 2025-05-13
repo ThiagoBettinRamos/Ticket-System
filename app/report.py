@@ -6,24 +6,36 @@ from reportlab.lib import colors
 from dateutil.parser import parse
 
 def gerar_graficos(dados):
+    import matplotlib.pyplot as plt
+
     setores = {}
     pessoas = {}
     for dado in dados:
         setores[dado[3]] = setores.get(dado[3], 0) + 1
         pessoas[dado[2]] = pessoas.get(dado[2], 0) + 1
 
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    fig, ax = plt.subplots(2, 1, figsize=(10, 10))  # 2 linhas, 1 coluna
+
+    # Gráfico por setor
     ax[0].bar(setores.keys(), setores.values(), color="skyblue")
     ax[0].set_title("Chamados por Setor")
     ax[0].set_xlabel("Setor")
     ax[0].set_ylabel("Número de Chamados")
-    ax[1].bar(pessoas.keys(), pessoas.values(), color="salmon")
+    ax[0].tick_params(axis='x', rotation=45)
+
+    # Gráfico por pessoa
+    ax[1].bar(pessoas.keys(), pessoas.values(), color="orchid")  # Roxo claro
     ax[1].set_title("Chamados por Pessoa")
     ax[1].set_xlabel("Pessoa")
     ax[1].set_ylabel("Número de Chamados")
+    ax[1].tick_params(axis='x', rotation=45)
+
     plt.tight_layout()
     fig.savefig("setores_chart.png")
+    plt.close(fig)  # Fecha o gráfico para não travar em ambientes com muitos PDFs
+
     return fig
+
 
 def gerar_pdf(dados, start_date, end_date, pdf_path):
     styles = getSampleStyleSheet()
