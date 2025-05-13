@@ -1,4 +1,6 @@
 from kivy.app import App
+SENHA_RELATORIO = "Diretoria25"
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
@@ -75,13 +77,17 @@ class ChamadosApp(App):
 
         if descricao and pessoa and setor and hora:
             try:
-                # Valida a hora no formato dd/mm/aa HH:MM
-                datetime.strptime(hora, "%d/%m/%y %H:%M")
-                registrar_chamado(descricao, pessoa, setor, hora)
+                # Converte do formato dd/mm/aa HH:MM para yyyy-mm-dd HH:MM:SS
+                dt = datetime.strptime(hora, "%d/%m/%y %H:%M")
+                hora_formatada = dt.strftime("%Y-%m-%d %H:%M:%S")
+
+                registrar_chamado(descricao, pessoa, setor, hora_formatada)
+
                 self.descricao_input.text = ""
                 self.pessoa_input.text = ""
                 self.setor_input.text = ""
                 self.hora_input.text = ""
+
                 self.show_info("Chamado registrado com sucesso!")
             except ValueError:
                 self.show_error("Data e hora inválidas. Use o formato dd/mm/aa HH:MM.")
@@ -150,52 +156,70 @@ class ChamadosApp(App):
             self.show_error(f"Erro ao excluir chamado: {e}")
 
     def gerar_relatorio(self, instance):
-        def parse_data_flexivel(data_str):
-            for fmt in ("%d/%m/%Y", "%d/%m/%y"):
-                try:
-                    return datetime.strptime(data_str, fmt)
-                except ValueError:
-                    continue
-            raise ValueError("Formato de data inválido. Use dd/mm/aaaa ou dd/mm/aa.")
+        def verificar_senha(inst):
+            senha = senha_input.text.strip()
+            senha_popup.dismiss()
+            if senha == SENHA_RELATORIO:
+                abrir_popup_periodo()
+            else:
+                self.show_error("Senha incorreta!")
 
-        def continuar(instance):
-            start_date = start_input.text.strip()
-            end_date = end_input.text.strip()
-            popup.dismiss()
+        senha_input = TextInput(password=True, hint_text="Digite a senha", multiline=False)
+        confirmar_btn = Button(text="Confirmar", size_hint_y=None, height=40)
+        box = BoxLayout(orientation='vertical', spacing=10, padding=10)
+        box.add_widget(senha_input)
+        box.add_widget(confirmar_btn)
+        senha_popup = Popup(title="Acesso Restrito", content=box, size_hint=(None, None), size=(400, 200))
+        confirmar_btn.bind(on_press=verificar_senha)
+        senha_popup.open()
 
-            if not start_date or not end_date:
-                self.show_error("As datas são obrigatórias!")
-                return
+        def abrir_popup_periodo():
+                def parse_data_flexivel(data_str):
+                    for fmt in ("%d/%m/%Y", "%d/%m/%y"):
+                        try:
+                            return datetime.strptime(data_str, fmt)
+                        except ValueError:
+                            continue
+                    raise ValueError("Formato de data inválido. Use dd/mm/aaaa ou dd/mm/aa.")
 
-            try:
-                start_dt = parse_data_flexivel(start_date)
-                end_dt = parse_data_flexivel(end_date)
-                start_date_conv = start_dt.strftime('%Y-%m-%d 00:00:00')
-                end_date_conv = end_dt.strftime('%Y-%m-%d 23:59:59')
+                def continuar(instance):
+                    start_date = start_input.text.strip()
+                    end_date = end_input.text.strip()
+                    popup.dismiss()
 
-                dados = listar_chamados_periodo(start_date_conv, end_date_conv)
+                    if not start_date or not end_date:
+                        self.show_error("As datas são obrigatórias!")
+                        return
 
-                if not dados:
-                    self.show_error("Nenhum chamado encontrado no período informado.")
-                    return
+                    try:
+                        start_dt = parse_data_flexivel(start_date)
+                        end_dt = parse_data_flexivel(end_date)
+                        start_date_conv = start_dt.strftime('%Y-%m-%d 00:00:00')
+                        end_date_conv = end_dt.strftime('%Y-%m-%d 23:59:59')
 
-                gerar_graficos(dados)
-                gerar_pdf(dados, start_date, end_date, "relatorio_chamados.pdf")
-                self.show_info("Relatório gerado com sucesso!")
+                        dados = listar_chamados_periodo(start_date_conv, end_date_conv)
 
-            except Exception as e:
-                self.show_error(f"Erro ao gerar relatório: {e}")
+                        if not dados:
+                            self.show_error("Nenhum chamado encontrado no período informado.")
+                            return
 
-        content = BoxLayout(orientation='vertical', spacing=10, padding=10)
-        start_input = TextInput(hint_text="Data Inicial (DD/MM/AAAA ou AA)", multiline=False)
-        end_input = TextInput(hint_text="Data Final (DD/MM/AAAA ou AA)", multiline=False)
-        confirmar = Button(text="Gerar Relatório", size_hint_y=None, height=40)
-        content.add_widget(start_input)
-        content.add_widget(end_input)
-        content.add_widget(confirmar)
-        popup = Popup(title="Informe o Período", content=content, size_hint=(None, None), size=(400, 250))
-        confirmar.bind(on_press=continuar)
-        popup.open()
+                        gerar_graficos(dados)
+                        gerar_pdf(dados, start_date, end_date, "relatorio_chamados.pdf")
+                        self.show_info("Relatório gerado com sucesso!")
+
+                    except Exception as e:
+                        self.show_error(f"Erro ao gerar relatório: {e}")
+
+                content = BoxLayout(orientation='vertical', spacing=10, padding=10)
+                start_input = TextInput(hint_text="Data Inicial (DD/MM/AAAA ou AA)", multiline=False)
+                end_input = TextInput(hint_text="Data Final (DD/MM/AAAA ou AA)", multiline=False)
+                confirmar = Button(text="Gerar Relatório", size_hint_y=None, height=40)
+                content.add_widget(start_input)
+                content.add_widget(end_input)
+                content.add_widget(confirmar)
+                popup = Popup(title="Informe o Período", content=content, size_hint=(None, None), size=(400, 250))
+                confirmar.bind(on_press=continuar)
+                popup.open()
 
     def show_error(self, message):
         popup = Popup(title="Erro", content=Label(text=message), size_hint=(None, None), size=(400, 200))
@@ -207,4 +231,4 @@ class ChamadosApp(App):
 
 
 if __name__ == '__main__':
-    ChamadosApp().run()
+            ChamadosApp().run()
