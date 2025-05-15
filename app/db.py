@@ -30,9 +30,19 @@ def excluir_chamado(id_chamado):
     conn.commit()
     conn.close()
 
-def listar_chamados_periodo(start_date, end_date):
+
+def listar_chamados_periodo(start_date, end_date, setor=None):
     conn, cursor = conectar_banco()
-    cursor.execute("SELECT * FROM chamados WHERE data_hora BETWEEN ? AND ?", (start_date, end_date))
+    if setor and setor.strip().lower() != "selecione o setor" and setor.strip() != "":
+        cursor.execute("""
+            SELECT * FROM chamados
+            WHERE data_hora BETWEEN ? AND ? AND LOWER(setor) = LOWER(?)
+        """, (start_date, end_date, setor))
+    else:
+        cursor.execute("""
+            SELECT * FROM chamados
+            WHERE data_hora BETWEEN ? AND ?
+        """, (start_date, end_date))
     dados = cursor.fetchall()
     conn.close()
     return dados

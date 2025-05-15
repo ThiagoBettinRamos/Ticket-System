@@ -5,7 +5,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from dateutil.parser import parse
 
-def gerar_graficos(dados):
+def gerar_graficos(dados, setor=None):
     import matplotlib.pyplot as plt
 
     setores = {}
@@ -36,12 +36,11 @@ def gerar_graficos(dados):
 
     return fig
 
-
-def gerar_pdf(dados, start_date, end_date, pdf_path):
+def gerar_pdf(dados, start_date, end_date, setor, pdf_path):
     styles = getSampleStyleSheet()
     elements = []
 
-    title = Paragraph(f"Relatório de Chamados de {start_date} até {end_date}", styles['Title'])
+    title = Paragraph(f"Relatório de Chamados de {start_date} até {end_date} - Setor: {setor if setor else 'Todos os Setores'}", styles['Title'])
     elements.append(title)
     elements.append(Spacer(1, 12))
 
@@ -58,24 +57,22 @@ def gerar_pdf(dados, start_date, end_date, pdf_path):
             data_formatada = dado[4]
         table_data.append([
             str(dado[0]),
-            Paragraph(dado[1], styles['Normal']),
-            Paragraph(dado[2], styles['Normal']),
-            Paragraph(dado[3], styles['Normal']),
-            Paragraph(data_formatada, styles['Normal'])
+            Paragraph(dado[1], styles["Normal"]),
+            Paragraph(dado[2], styles["Normal"]),
+            Paragraph(dado[3], styles["Normal"]),
+            Paragraph(data_formatada, styles["Normal"])
         ])
 
     t = Table(table_data, colWidths=[40, 200, 100, 100, 120])
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.grey),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,0), 10),
-        ('BOTTOMPADDING', (0,0), (-1,0), 12),
-        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-        ('GRID', (0,0), (-1,-1), 1, colors.black),
-    ]))
+    t.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.grey),
+                           ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                           ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+                           ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                           ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                           ('FONTSIZE', (0,0), (-1,0), 10),
+                           ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                           ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+                           ('GRID', (0,0), (-1,-1), 1, colors.black)]))
     elements.append(t)
     elements.append(Spacer(1, 24))
 

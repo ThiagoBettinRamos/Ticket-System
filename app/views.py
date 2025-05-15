@@ -10,9 +10,14 @@ from kivy.uix.popup import Popup
 from kivy.core.window import Window
 from datetime import datetime
 from kivy.uix.scrollview import ScrollView
-
+from kivy.uix.spinner import Spinner
 from db import listar_chamados_todos, listar_chamados_periodo, registrar_chamado, excluir_chamado
 from report import gerar_pdf, gerar_graficos
+from dateutil.parser import parse
+
+def parse_data_flexivel(data_texto):
+    return parse(data_texto, dayfirst=True)
+
 
 class ChamadosApp(App):
     def __init__(self, **kwargs):
@@ -42,7 +47,17 @@ class ChamadosApp(App):
         form_layout.add_widget(self.pessoa_input)
 
         form_layout.add_widget(Label(text="Setor:", color=(1, 1, 1, 1)))
-        self.setor_input = TextInput(hint_text="Setor", multiline=False, height=40)
+        setores_disponiveis = [
+            "recepção ambulatorio", "recepção pa", "recepção fisio", "internação", "faturamento",
+            "centro cirurgico", "ti", "almoxarifado", "farmacia", "compras",
+            "consultorios pa", "consultorios amb", "rh", "fisioterapia", "financeiro", "diretoria", "segurança"
+        ]
+        self.setor_input = Spinner(
+            text="Selecione o Setor",
+            values=setores_disponiveis,
+            size_hint_y=None,
+            height=40
+        )
         form_layout.add_widget(self.setor_input)
 
         form_layout.add_widget(Label(text="Data e Hora (dd/mm/aa HH:MM):", color=(1, 1, 1, 1)))
@@ -75,10 +90,13 @@ class ChamadosApp(App):
         setor = self.setor_input.text.strip()
         hora = self.hora_input.text.strip()
 
-        if descricao and pessoa and setor and hora:
+        if descricao and pessoa and setor != "Selecione o Setor" and hora:
             try:
                 # Converte do formato dd/mm/aa HH:MM para yyyy-mm-dd HH:MM:SS
-                dt = datetime.strptime(hora, "%d/%m/%y %H:%M")
+                try:
+                    dt = datetime.strptime(hora, "%d/%m/%Y %H:%M")  # tenta com 4 dígitos
+                except ValueError:
+                    dt = datetime.strptime(hora, "%d/%m/%y %H:%M")  # tenta com 2 dígitos
                 hora_formatada = dt.strftime("%Y-%m-%d %H:%M:%S")
 
                 registrar_chamado(descricao, pessoa, setor, hora_formatada)
@@ -233,52 +251,52 @@ class ChamadosApp(App):
         senha_popup.open()
 
         def abrir_popup_periodo():
-                def parse_data_flexivel(data_str):
-                    for fmt in ("%d/%m/%Y", "%d/%m/%y"):
-                        try:
-                            return datetime.strptime(data_str, fmt)
-                        except ValueError:
-                            continue
-                    raise ValueError("Formato de data inválido. Use dd/mm/aaaa ou dd/mm/aa.")
+            def continuar(instance):
+                start_date = start_input.text.strip()
+                end_date = end_input.text.strip()
+                setor = setor_input.text.strip()
+                popup.dismiss()
 
-                def continuar(instance):
-                    start_date = start_input.text.strip()
-                    end_date = end_input.text.strip()
-                    popup.dismiss()
+                if not start_date or not end_date:
+                    self.show_error("As datas são obrigatórias!")
+                    return
 
-                    if not start_date or not end_date:
-                        self.show_error("As datas são obrigatórias!")
+                try:
+                    start_dt = parse_data_flexivel(start_date)
+                    end_dt = parse_data_flexivel(end_date)
+                    start_date_conv = start_dt.strftime('%Y-%m-%d 00:00:00')
+                    end_date_conv = end_dt.strftime('%Y-%m-%d 23:59:59')
+
+                    dados = listar_chamados_periodo(start_date_conv, end_date_conv, setor)
+
+                    if not dados:
+                        self.show_error("Nenhum chamado encontrado no período e setor informados.")
                         return
 
-                    try:
-                        start_dt = parse_data_flexivel(start_date)
-                        end_dt = parse_data_flexivel(end_date)
-                        start_date_conv = start_dt.strftime('%Y-%m-%d 00:00:00')
-                        end_date_conv = end_dt.strftime('%Y-%m-%d 23:59:59')
+                    gerar_graficos(dados, setor)
+                    gerar_pdf(dados, start_date, end_date, setor, "relatorio_chamados.pdf")
+                    self.show_info("Relatório gerado com sucesso!")
 
-                        dados = listar_chamados_periodo(start_date_conv, end_date_conv)
+                except Exception as e:
+                    self.show_error(f"Erro ao gerar relatório: {e}")
 
-                        if not dados:
-                            self.show_error("Nenhum chamado encontrado no período informado.")
-                            return
-
-                        gerar_graficos(dados)
-                        gerar_pdf(dados, start_date, end_date, "relatorio_chamados.pdf")
-                        self.show_info("Relatório gerado com sucesso!")
-
-                    except Exception as e:
-                        self.show_error(f"Erro ao gerar relatório: {e}")
-
-                content = BoxLayout(orientation='vertical', spacing=10, padding=10)
-                start_input = TextInput(hint_text="Data Inicial (DD/MM/AAAA ou AA)", multiline=False)
-                end_input = TextInput(hint_text="Data Final (DD/MM/AAAA ou AA)", multiline=False)
-                confirmar = Button(text="Gerar Relatório", size_hint_y=None, height=40)
-                content.add_widget(start_input)
-                content.add_widget(end_input)
-                content.add_widget(confirmar)
-                popup = Popup(title="Informe o Período", content=content, size_hint=(None, None), size=(400, 250))
-                confirmar.bind(on_press=continuar)
-                popup.open()
+            content = BoxLayout(orientation='vertical', spacing=10, padding=10)
+            start_input = TextInput(hint_text="Data Inicial (DD/MM/AAAA ou AA)", multiline=False)
+            end_input = TextInput(hint_text="Data Final (DD/MM/AAAA ou AA)", multiline=False)
+            setores_disponiveis = [
+                "recepção ambulatorio", "recepção pa", "recepção fisio", "internação", "faturamento",
+                "centro cirurgico", "ti", "almoxarifado", "farmacia", "compras",
+                "consultorios pa", "consultorios amb", "rh", "fisioterapia", "financeiro", "diretoria", "segurança"
+            ]
+            setor_input = Spinner(text="Selecione o Setor", values=[""] + setores_disponiveis)
+            confirmar = Button(text="Gerar Relatório", size_hint_y=None, height=40)
+            content.add_widget(start_input)
+            content.add_widget(end_input)
+            content.add_widget(setor_input)
+            content.add_widget(confirmar)
+            popup = Popup(title="Informe o Período e Setor", content=content, size_hint=(None, None), size=(400, 250))
+            confirmar.bind(on_press=continuar)
+            popup.open()
 
     def show_error(self, message):
         popup = Popup(title="Erro", content=Label(text=message), size_hint=(None, None), size=(400, 200))
